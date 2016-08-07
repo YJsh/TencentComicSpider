@@ -1,2 +1,2 @@
 # TencentComicSpider
-Spider for Tencent Comicc
+Spider for Tencent Comic
