@@ -4,8 +4,8 @@ import time
 import threading
 import urllib
 
+import utils
 from config import interval
-from utils import mutex, picList
 
 class Downloader(threading.Thread):
     isStop = False
@@ -17,12 +17,12 @@ class Downloader(threading.Thread):
     def run(self):
         while True:
             time.sleep(interval)
-            mutex.acquire(1)
-            if picList != []:
-                picURL, picDir, picIndex = picList.pop(0)
+            utils.mutex.acquire(1)
+            if utils.picList != []:
+                picURL, picDir, picIndex = utils.picList.pop(0)
             else:
                 picURL = ""
-            mutex.release()
+            utils.mutex.release()
             if picURL != "":
                 self.downloadPic(picURL, picDir, picIndex)
                 try:

@@ -2,11 +2,10 @@
 import json
 import os
 import re
-import time
 import urllib2
 
+import utils
 from config import *
-from utils import dealWithSpecialCharacter, mutex, picList
 
 def handleChapterInfo(data):
     keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
@@ -66,17 +65,15 @@ def getChapterInfo(chapterURL, comicTitle):
     data = dataPattern.search(content).group("data")
     chapterInfo = json.loads(handleChapterInfo(data))
     chapterTitle = chapterInfo["chapter"]["cTitle"]
-    chapterTitle = dealWithSpecialCharacter(chapterTitle)
-    chapterDirPath = os.path.join(baseDirPath, comicTitle, chapterTitle)
-    if not os.path.exists(chapterDirPath):
-        os.mkdir(chapterDirPath)
+    chapterTitle = utils.dealWithSpecialCharacter(chapterTitle)
+    chapterDirPath = utils.mkdir(baseDirPath, comicTitle, chapterTitle)
     
-    mutex.acquire()
+    utils.mutex.acquire()
     picIndex = 0
     for picInfo in chapterInfo["picture"]:
         picIndex += 1
-        picList.append((picInfo["url"], chapterDirPath, picIndex))
-    mutex.release()
+        utils.picList.append((picInfo["url"], chapterDirPath, picIndex))
+    utils.mutex.release()
     
     try:
         print(chapterTitle)
@@ -89,30 +86,21 @@ def getComicInfo(comicURL):
         content = response.read().decode("utf-8")
     except Exception, e:
         print(e)
-        return "", []
+        return "", [], u"访问网页出现错误！"
 
     comicTitlePattern = re.compile(
             r"<h2 class=\"works-intro-title ui-left\"><strong>(?P<comicTitle>.*?)</strong></h2>")
     result = comicTitlePattern.search(content)
     if not result:
-        print("未找到漫画标题，请确认！")
-        return
+        return "", [], u"未找到对应漫画信息，请确认！"
+
     comicTitle = result.group("comicTitle")
-    comicTitle = dealWithSpecialCharacter(comicTitle)
-    print(comicTitle)
+    comicTitle = utils.dealWithSpecialCharacter(comicTitle)
 
     comicChapterPattern = re.compile(
             r"<a target=\"_blank\".*?href=\"(?P<URL>[/\w]+)\">\s")    #链接
     chapterURLs = comicChapterPattern.findall(content)
     if not chapterURLs:
-        print("未找到相关章节链接，请确认！")
-        return
-    comicDirPath = os.path.join(baseDirPath, comicTitle)
-    if not os.path.exists(comicDirPath):
-        os.mkdir(comicDirPath)
+        return "", [], u"未找到相关章节，请确认！"
 
-    for url in chapterURLs:
-        getChapterInfo(url, comicTitle)
-        time.sleep(1)
-    return comicTitle, chapterURLs
-
+    return comicTitle, chapterURLs, None
